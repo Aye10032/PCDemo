@@ -18,6 +18,7 @@ class window(wx.Frame):
 
         img1 = wx.Image('receive.bmp', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         self.img_hand = wx.StaticBitmap(panel, -1, img1, pos=(10, 10), size=(480, 360))
+        self.img_car = wx.StaticBitmap(panel, -1, img1, pos=(500, 10), size=(480, 360))
 
         self.startbtn = wx.Button(panel, -1, '连接', pos=(200, 400), size=(70, 25))
         self.Bind(wx.EVT_BUTTON, self.start, self.startbtn)
@@ -35,11 +36,18 @@ class window(wx.Frame):
             npimg = np.fromstring(img, dtype=np.uint8)
             frame = cv2.imdecode(npimg, 1)
 
-            height, width = frame.shape[:2]
-            print(height, width)
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            pic = wx.Bitmap.FromBuffer(width, height, frame)
-            self.img_hand.SetBitmap(pic)
+            frame_hand = frame[0:360, 0:480]
+            frame_car = frame[0:360, 480:960]
+            height1, width1 = frame_hand.shape[:2]
+            height2, width2 = frame_car.shape[:2]
+            print(height2, width2)
+            frame_hand = cv2.cvtColor(frame_hand, cv2.COLOR_BGR2RGB)
+            pic_hand = wx.Bitmap.FromBuffer(width1, height1, frame_hand)
+            frame_car = cv2.cvtColor(frame_car, cv2.COLOR_BGR2RGB)
+            pic_car = wx.Bitmap.FromBuffer(width2, height2, frame_car)
+            self.img_hand.SetBitmap(pic_hand)
+            self.img_car.SetBitmap(pic_car)
+            cv2.imwrite('receive.bmp', frame_car)
 
     def start(self, event):
         import _thread

@@ -85,16 +85,16 @@ if __name__ == '__main__':
             cv2.putText(frame, "Tracking failure detected", (50, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
 
         # Display tracker type on frame
-        cv2.putText(frame, tracker_type + " Tracker", (50, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2);
+        cv2.putText(frame, tracker_type + " Tracker", (50, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
 
         # Display FPS on frame
-        cv2.putText(frame, "FPS : " + str(int(fps)), (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2);
+        cv2.putText(frame, "FPS : " + str(int(fps)), (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
 
         cv2.putText(frame, "Center : (" + str(int(bbox[0])) + ',' + str(int(bbox[1])) + ")", (50, 80),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2);
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
 
         cv2.putText(frame, "Size : " + str(int(bbox[2] * bbox[3])), (50, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.75,
-                    (0, 0, 255), 2);
+                    (0, 0, 255), 2)
 
         out.write(frame)
 
