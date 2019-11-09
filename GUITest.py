@@ -24,8 +24,24 @@ class window(wx.Frame):
         self.startbtn = wx.Button(panel, -1, '连接', pos=(200, 400), size=(70, 25))
         self.Bind(wx.EVT_BUTTON, self.start, self.startbtn)
 
-        import _thread
-        _thread.start_new_thread(self.JoykitDo, ())
+        # 相关数据
+        self.light_status = 0
+
+        # 初始化手柄
+        pygame.init()
+        pygame.joystick.init()
+
+        self.JoyKit = pygame.joystick.Joystick(0)
+        self.JoyKit_name = self.JoyKit.get_name()
+        print(self.JoyKit_name)
+        self.JoyKit.init()
+
+        self.axe_count = self.JoyKit.get_numaxes()
+        print(self.axe_count)
+
+        if self.JoyKit_name == 'XInput Controller #1':
+            import _thread
+            _thread.start_new_thread(self.XboxInput, ())
 
     def receiveimg1(self, event):
         context = zmq.Context()
@@ -57,26 +73,22 @@ class window(wx.Frame):
         import _thread
         _thread.start_new_thread(self.receiveimg1, (event,))
 
-    def JoykitDo(self):
-        pygame.init()
-        pygame.joystick.init()
-
-        xboxOne = pygame.joystick.Joystick(0)
-        print(xboxOne.get_name())
-        xboxOne.init()
-
-        axe_count = xboxOne.get_numaxes()
-        print(axe_count)
-
+    def XboxInput(self):
         while True:
             for event in pygame.event.get():
-                if event.type == pygame.JOYAXISMOTION:
-                    for i in range(axe_count):
-                        axe_value = xboxOne.get_axis(i)
-                        axe_value = (axe_value + 1) / 2
-                        print('{}  {:>6.2f}'.format(i, axe_value))
-                        # print(i, ' ', axe_value)
-                    print('------')
+                if event.type == pygame.JOYHATMOTION:
+                    # 车灯
+                    if event.value == (0, 1):
+                        if self.light_status == 0:
+                            print(50)
+                            self.light_status = 1
+                        elif self.light_status == 1:
+                            print(51)
+                            self.light_status = 0
+                elif event.type == pygame.JOYAXISMOTION:
+                    if event.axis == 2 or event.axis == 5:
+                        print(event.value)
+                        print('------')
 
 
 if __name__ == '__main__':
