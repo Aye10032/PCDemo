@@ -1,6 +1,7 @@
 import threading
 import time
 
+import pygame
 import wx
 import cv2
 import zmq
@@ -22,6 +23,9 @@ class window(wx.Frame):
 
         self.startbtn = wx.Button(panel, -1, '连接', pos=(200, 400), size=(70, 25))
         self.Bind(wx.EVT_BUTTON, self.start, self.startbtn)
+
+        import _thread
+        _thread.start_new_thread(self.JoykitDo, ())
 
     def receiveimg1(self, event):
         context = zmq.Context()
@@ -47,11 +51,32 @@ class window(wx.Frame):
             pic_car = wx.Bitmap.FromBuffer(width2, height2, frame_car)
             self.img_hand.SetBitmap(pic_hand)
             self.img_car.SetBitmap(pic_car)
-            cv2.imwrite('receive.bmp', frame_car)
+            cv2.imwrite('conf/receive.bmp', frame_car)
 
     def start(self, event):
         import _thread
         _thread.start_new_thread(self.receiveimg1, (event,))
+
+    def JoykitDo(self):
+        pygame.init()
+        pygame.joystick.init()
+
+        xboxOne = pygame.joystick.Joystick(0)
+        print(xboxOne.get_name())
+        xboxOne.init()
+
+        axe_count = xboxOne.get_numaxes()
+        print(axe_count)
+
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.JOYAXISMOTION:
+                    for i in range(axe_count):
+                        axe_value = xboxOne.get_axis(i)
+                        axe_value = (axe_value + 1) / 2
+                        print('{}  {:>6.2f}'.format(i, axe_value))
+                        # print(i, ' ', axe_value)
+                    print('------')
 
 
 if __name__ == '__main__':

@@ -17,7 +17,7 @@ while True:
     # frame2 = cv2.resize(frame2, (640, 360))
     frame = np.vstack((frame1, frame1))
     localtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-    cv2.putText(frame, localtime, (20, 20), cv2.FONT_HERSHEY_COMPLEX, 0.75, (0, 0, 255), 2)
+    cv2.putText(frame, localtime, (20, 20), cv2.FONT_ITALIC, 0.75, (0, 0, 255), 2)
     height, width = frame1.shape[:2]
     print(height, width)
     cv2.imshow('frame', frame)
