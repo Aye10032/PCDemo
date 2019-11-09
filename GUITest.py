@@ -26,6 +26,7 @@ class window(wx.Frame):
 
         # 相关数据
         self.light_status = 0
+        self.moment_mode = 0
 
         # 初始化手柄
         pygame.init()
@@ -41,7 +42,7 @@ class window(wx.Frame):
 
         if self.JoyKit_name == 'XInput Controller #1':
             import _thread
-            _thread.start_new_thread(self.XboxInput, ())
+            _thread.start_new_thread(self.xbox_input, ())
 
     def receiveimg1(self, event):
         context = zmq.Context()
@@ -73,7 +74,7 @@ class window(wx.Frame):
         import _thread
         _thread.start_new_thread(self.receiveimg1, (event,))
 
-    def XboxInput(self):
+    def xbox_input(self):
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.JOYHATMOTION:
@@ -85,10 +86,33 @@ class window(wx.Frame):
                         elif self.light_status == 1:
                             print(51)
                             self.light_status = 0
+                elif event.type == pygame.JOYBUTTONDOWN:
+                    if event.button == 7:
+                        # 切换至抓取模式
+                        if self.moment_mode == 0:
+                            self.moment_mode = 1
+                            print(47)
+                        elif self.moment_mode == 1:
+                            self.moment_mode = 0
+                    elif event.button == 5:
+                        # 刹车
+                        if self.moment_mode == 0:
+                            print(47)
                 elif event.type == pygame.JOYAXISMOTION:
-                    if event.axis == 2 or event.axis == 5:
-                        print(event.value)
-                        print('------')
+                    if self.moment_mode == 0:
+                        # 变速
+                        if event.axis == 5:
+                            speed_level = (event.value + 1) * 50
+                            if speed_level >= 66.66:
+                                print(48)
+                            elif 33.33 <= speed_level < 66.66:
+                                print(49)
+                            elif speed_level < 33.33:
+                                print(52)
+                            print('------')
+                        else:
+                            if event.axis == 0:
+                                print(event.value)
 
 
 if __name__ == '__main__':
