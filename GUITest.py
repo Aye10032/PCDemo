@@ -2,6 +2,7 @@ import threading
 import time
 
 import pygame
+import serial
 import wx
 import cv2
 import zmq
@@ -11,7 +12,7 @@ import numpy as np
 
 class window(wx.Frame):
     def __init__(self, parent, id):
-        wx.Frame.__init__(self, parent, id, '抢险车上位机', size=(1080, 480),
+        wx.Frame.__init__(self, parent, id, '抢险车上位机', size=(1010, 600),
                           style=wx.CAPTION | wx.MINIMIZE_BOX | wx.CLOSE_BOX | wx.SYSTEM_MENU)
         self.Center()
 
@@ -21,12 +22,16 @@ class window(wx.Frame):
         self.img_hand = wx.StaticBitmap(panel, -1, img1, pos=(10, 10), size=(480, 360))
         self.img_car = wx.StaticBitmap(panel, -1, img1, pos=(500, 10), size=(480, 360))
 
-        self.startbtn = wx.Button(panel, -1, '连接', pos=(200, 400), size=(70, 25))
+        self.ipLable = wx.StaticText(panel, -1, 'IP', (20, 400), (30, 20))
+        self.ipText = wx.TextCtrl(panel, -1, 'tcp://192.168.2.192:5555', (55, 400), (230, 25))
+        self.startbtn = wx.Button(panel, -1, '连接', pos=(300, 400), size=(70, 25))
         self.Bind(wx.EVT_BUTTON, self.start, self.startbtn)
 
         # 相关数据
         self.light_status = 0
         self.moment_mode = 0
+
+        self.RT_temp = 0
 
         # 初始化手柄
         pygame.init()
@@ -43,6 +48,14 @@ class window(wx.Frame):
         if self.JoyKit_name == 'XInput Controller #1':
             import _thread
             _thread.start_new_thread(self.xbox_input, ())
+
+        # 蓝牙部分
+
+        portx = "COM9"
+        bps = '9600'
+        timex = 0.2
+        self.ser = None
+        self.ser = serial.Serial(portx, bps, timeout=timex)
 
     def receiveimg1(self, event):
         context = zmq.Context()
@@ -74,45 +87,94 @@ class window(wx.Frame):
         import _thread
         _thread.start_new_thread(self.receiveimg1, (event,))
 
+    def sendMSG(self, msg, msgx):
+        print(msg)
+        # self.ser.write(msgx.encode('utf-8'))
+
     def xbox_input(self):
+        cut_off = 0.2
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.JOYHATMOTION:
                     # 车灯
                     if event.value == (0, 1):
                         if self.light_status == 0:
-                            print(50)
+                            self.sendMSG(50, '\x50')
                             self.light_status = 1
                         elif self.light_status == 1:
-                            print(51)
+                            self.sendMSG(51, '\x51')
                             self.light_status = 0
                 elif event.type == pygame.JOYBUTTONDOWN:
                     if event.button == 7:
                         # 切换至抓取模式
                         if self.moment_mode == 0:
                             self.moment_mode = 1
-                            print(47)
+                            self.sendMSG(47, '\x47')
                         elif self.moment_mode == 1:
                             self.moment_mode = 0
                     elif event.button == 5:
                         # 刹车
                         if self.moment_mode == 0:
-                            print(47)
-                elif event.type == pygame.JOYAXISMOTION:
-                    if self.moment_mode == 0:
-                        # 变速
-                        if event.axis == 5:
-                            speed_level = (event.value + 1) * 50
-                            if speed_level >= 66.66:
-                                print(48)
-                            elif 33.33 <= speed_level < 66.66:
-                                print(49)
-                            elif speed_level < 33.33:
-                                print(52)
-                            print('------')
-                        else:
-                            if event.axis == 0:
-                                print(event.value)
+                            self.sendMSG(47, '\x47')
+
+            # 行车模式
+            if self.moment_mode == 0:
+                # 变速
+                speed_level = (self.JoyKit.get_axis(5) + 1) * 50
+                if speed_level >= 66.66:
+                    self.sendMSG(48, '\x48')
+                elif 33.33 <= speed_level < 66.66:
+                    self.sendMSG(49, '\x49')
+                elif speed_level < 33.33:
+                    self.sendMSG(52, '\x52')
+                # 前进后退
+                elif self.JoyKit.get_axis(1) > cut_off:
+                    self.sendMSG(44, '\x44')
+                elif self.JoyKit.get_axis(1) < -cut_off:
+                    self.sendMSG(43, '\x43')
+                # 左右转
+                elif self.JoyKit.get_axis(0) > cut_off:
+                    self.sendMSG(45, '\x45')
+                elif self.JoyKit.get_axis(0) < -cut_off:
+                    self.sendMSG(46, '\x46')
+            # 抓取模式
+            elif self.moment_mode == 1:
+                time.sleep(0.1)
+                # 抓握
+                if self.JoyKit.get_axis(5) > -0.6:
+                    print(31)
+                    self.ser.write('\x31'.encode('utf-8'))
+                elif self.JoyKit.get_axis(2) > -0.6:
+                    print(32)
+                    self.ser.write('\x32'.encode('utf-8'))
+                # 整体前后
+                elif self.JoyKit.get_axis(1) > cut_off:
+                    print(37)
+                    self.ser.write('\x37'.encode('utf-8'))
+                elif self.JoyKit.get_axis(1) < -cut_off:
+                    print(38)
+                    self.ser.write('\x38'.encode('utf-8'))
+                # 整体左右
+                elif self.JoyKit.get_axis(0) > cut_off:
+                    print(42)
+                    self.ser.write('\x42'.encode('utf-8'))
+                elif self.JoyKit.get_axis(0) < -cut_off:
+                    print(41)
+                    self.ser.write('\x41'.encode('utf-8'))
+                # 手部上下
+                elif self.JoyKit.get_axis(4) > cut_off:
+                    print(35)
+                    self.ser.write('\x35'.encode('utf-8'))
+                elif self.JoyKit.get_axis(4) < -cut_off:
+                    print(36)
+                    self.ser.write('\x36'.encode('utf-8'))
+                # 手部左右
+                elif self.JoyKit.get_axis(3) > cut_off:
+                    print(34)
+                    self.ser.write('\x34'.encode('utf-8'))
+                elif self.JoyKit.get_axis(3) < -cut_off:
+                    print(33)
+                    self.ser.write('\x33'.encode('utf-8'))
 
 
 if __name__ == '__main__':
