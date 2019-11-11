@@ -22,10 +22,19 @@ class window(wx.Frame):
         self.img_hand = wx.StaticBitmap(panel, -1, img1, pos=(10, 10), size=(480, 360))
         self.img_car = wx.StaticBitmap(panel, -1, img1, pos=(500, 10), size=(480, 360))
 
-        self.ipLable = wx.StaticText(panel, -1, 'IP', (20, 400), (30, 20))
+        self.ipLable = wx.StaticText(panel, -1, 'IP', (20, 405), (30, 20))
         self.ipText = wx.TextCtrl(panel, -1, 'tcp://192.168.2.192:5555', (55, 400), (230, 25))
         self.startbtn = wx.Button(panel, -1, '连接', pos=(300, 400), size=(70, 25))
         self.Bind(wx.EVT_BUTTON, self.start, self.startbtn)
+
+        self.portLable = wx.StaticText(panel, -1, 'prot', (20, 445), (30, 20))
+        self.portText = wx.TextCtrl(panel, -1, 'COM9', (55, 440), (60, 25))
+        self.bpsLable = wx.StaticText(panel, -1, 'pbs', (160, 445), (30, 20))
+        self.list = ['300', '600', '1200', '2400', '4800', '9600', '19200', '38400', '43000', '56000', '57600',
+                     '115200']
+        self.bpsText = wx.ComboBox(panel, -1, value='9600', choices=self.list, pos=(190, 440), size=(70, 25))
+        self.BLEbtn = wx.Button(panel, -1, '连接', pos=(300, 440), size=(70, 25))
+        self.Bind(wx.EVT_BUTTON, self.connble, self.BLEbtn)
 
         # 相关数据
         self.light_status = 0
@@ -51,11 +60,10 @@ class window(wx.Frame):
 
         # 蓝牙部分
 
-        portx = "COM9"
-        bps = '9600'
-        timex = 0.2
+        self.portx = "COM9"
+        self.bps = '9600'
+        self.timex = 0.2
         self.ser = None
-        self.ser = serial.Serial(portx, bps, timeout=timex)
 
     def receiveimg1(self, event):
         context = zmq.Context()
@@ -86,6 +94,11 @@ class window(wx.Frame):
     def start(self, event):
         import _thread
         _thread.start_new_thread(self.receiveimg1, (event,))
+
+    def connble(self, event):
+        self.portx = self.portText.GetValue()
+        self.bps = self.bpsText.GetValue()
+        self.ser = serial.Serial(self.portx, self.bps, timeout=self.timex)
 
     def sendMSG(self, msg, msgx):
         print(msg)
@@ -125,7 +138,7 @@ class window(wx.Frame):
                     self.sendMSG(48, '\x48')
                 elif 33.33 <= speed_level < 66.66:
                     self.sendMSG(49, '\x49')
-                elif speed_level < 33.33:
+                elif 5 < speed_level < 33.33:
                     self.sendMSG(52, '\x52')
                 # 前进后退
                 elif self.JoyKit.get_axis(1) > cut_off:
