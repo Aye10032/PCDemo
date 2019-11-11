@@ -107,6 +107,7 @@ class window(wx.Frame):
     def xbox_input(self):
         cut_off = 0.2
         while True:
+            time.sleep(0.02)
             for event in pygame.event.get():
                 if event.type == pygame.JOYHATMOTION:
                     # 车灯
@@ -125,10 +126,17 @@ class window(wx.Frame):
                             self.sendMSG(47, '\x47')
                         elif self.moment_mode == 1:
                             self.moment_mode = 0
-                    elif event.button == 5:
+                    elif event.button == 4:
                         # 刹车
                         if self.moment_mode == 0:
                             self.sendMSG(47, '\x47')
+                    elif event.button == 5:
+                        # 精准模式
+                        cut_off = 0.7
+                elif event.type == pygame.JOYBUTTONUP:
+                    if event.button == 5:
+                        # 退出精准模式
+                        cut_off = 0.2
 
             # 行车模式
             if self.moment_mode == 0:
@@ -152,42 +160,31 @@ class window(wx.Frame):
                     self.sendMSG(46, '\x46')
             # 抓取模式
             elif self.moment_mode == 1:
-                time.sleep(0.1)
                 # 抓握
                 if self.JoyKit.get_axis(5) > -0.6:
-                    print(31)
-                    self.ser.write('\x31'.encode('utf-8'))
+                    self.sendMSG(31, '\x31')
                 elif self.JoyKit.get_axis(2) > -0.6:
-                    print(32)
-                    self.ser.write('\x32'.encode('utf-8'))
+                    self.sendMSG(32, '\x32')
                 # 整体前后
                 elif self.JoyKit.get_axis(1) > cut_off:
-                    print(37)
-                    self.ser.write('\x37'.encode('utf-8'))
+                    self.sendMSG(37, '\x37')
                 elif self.JoyKit.get_axis(1) < -cut_off:
-                    print(38)
-                    self.ser.write('\x38'.encode('utf-8'))
+                    self.sendMSG(38, '\x38')
                 # 整体左右
                 elif self.JoyKit.get_axis(0) > cut_off:
-                    print(42)
-                    self.ser.write('\x42'.encode('utf-8'))
+                    self.sendMSG(42, '\x42')
                 elif self.JoyKit.get_axis(0) < -cut_off:
-                    print(41)
-                    self.ser.write('\x41'.encode('utf-8'))
+                    self.sendMSG(41, '\x41')
                 # 手部上下
                 elif self.JoyKit.get_axis(4) > cut_off:
-                    print(35)
-                    self.ser.write('\x35'.encode('utf-8'))
+                    self.sendMSG(35, '\x35')
                 elif self.JoyKit.get_axis(4) < -cut_off:
-                    print(36)
-                    self.ser.write('\x36'.encode('utf-8'))
+                    self.sendMSG(36, '\x36')
                 # 手部左右
                 elif self.JoyKit.get_axis(3) > cut_off:
-                    print(34)
-                    self.ser.write('\x34'.encode('utf-8'))
+                    self.sendMSG(34, '\x34')
                 elif self.JoyKit.get_axis(3) < -cut_off:
-                    print(33)
-                    self.ser.write('\x33'.encode('utf-8'))
+                    self.sendMSG(33, '\x33')
 
 
 if __name__ == '__main__':
