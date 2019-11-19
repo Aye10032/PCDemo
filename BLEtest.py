@@ -1,6 +1,8 @@
 import time
 import serial
 
+import serial.tools.list_ports
+
 import wx
 
 
@@ -31,6 +33,13 @@ class window(wx.Frame):
         self.btn = wx.Button(self.panel, -1, 'OK', (230, 70), (80, 25))
         self.btn.Bind(wx.EVT_BUTTON, self.connect)
 
+        port_list = list(serial.tools.list_ports.comports())
+        if len(port_list) == 0:
+            print('无可用串口')
+        else:
+            for i in range(0, len(port_list)):
+                print(port_list[i])
+
     def receiveimg1(self, event):
         i = 0
 
@@ -40,17 +49,18 @@ class window(wx.Frame):
         ser = serial.Serial(self.portx, self.bps, timeout=self.timex)
         test = '\x31'
 
-        while not (i == 20):
-            time.sleep(0.2)
-            i += 1
+        while True:
+            # time.sleep(0.2)
+            # i += 1
             try:
-
 
                 # 写数据
                 result = ser.write(test.encode('utf-8'))
                 print("写总字节数:", result)
 
-                ser.close()  # 关闭串口
+                print(ser.read().hex())
+
+                # ser.close()  # 关闭串口
 
             except Exception as e:
                 print("---异常---：", e)
