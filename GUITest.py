@@ -1,5 +1,6 @@
-import threading
 import time
+
+import serial.tools.list_ports
 
 import pygame
 import serial
@@ -39,6 +40,7 @@ class window(wx.Frame):
         # 相关数据
         self.light_status = 0
         self.moment_mode = 0
+        self.bleFlag = False
 
         self.RT_temp = 0
 
@@ -59,6 +61,13 @@ class window(wx.Frame):
             _thread.start_new_thread(self.xbox_input, ())
 
         # 蓝牙部分
+        port_list = list(serial.tools.list_ports.comports())
+        if len(port_list) == 0:
+            print('无可用串口')
+            self.bleFlag = False
+        else:
+            for i in range(0, len(port_list)):
+                print(port_list[i])
 
         self.portx = "COM9"
         self.bps = '9600'
@@ -99,10 +108,12 @@ class window(wx.Frame):
         self.portx = self.portText.GetValue()
         self.bps = self.bpsText.GetValue()
         self.ser = serial.Serial(self.portx, self.bps, timeout=self.timex)
+        self.bleFlag = True
 
     def sendMSG(self, msg, msgx):
         print(msg)
-        # self.ser.write(msgx.encode('utf-8'))
+        if self.bleFlag:
+            self.ser.write(msgx.encode('utf-8'))
 
     def xbox_input(self):
         cut_off = 0.2
@@ -158,6 +169,16 @@ class window(wx.Frame):
                     self.sendMSG(45, '\x45')
                 elif self.JoyKit.get_axis(0) < -cut_off:
                     self.sendMSG(46, '\x46')
+                # 手部上下
+                elif self.JoyKit.get_axis(4) > cut_off:
+                    self.sendMSG(56, '\x56')
+                elif self.JoyKit.get_axis(4) < -cut_off:
+                    self.sendMSG(55, '\x55')
+                # 手部左右
+                elif self.JoyKit.get_axis(3) > cut_off:
+                    self.sendMSG(54, '\x54')
+                elif self.JoyKit.get_axis(3) < -cut_off:
+                    self.sendMSG(53, '\x53')
             # 抓取模式
             elif self.moment_mode == 1:
                 # 抓握
@@ -168,13 +189,17 @@ class window(wx.Frame):
                 # 整体前后
                 elif self.JoyKit.get_axis(1) > cut_off:
                     self.sendMSG(37, '\x37')
+                    time.sleep(1)
                 elif self.JoyKit.get_axis(1) < -cut_off:
                     self.sendMSG(38, '\x38')
+                    time.sleep(1)
                 # 整体左右
                 elif self.JoyKit.get_axis(0) > cut_off:
                     self.sendMSG(42, '\x42')
+                    time.sleep(1)
                 elif self.JoyKit.get_axis(0) < -cut_off:
                     self.sendMSG(41, '\x41')
+                    time.sleep(1)
                 # 手部上下
                 elif self.JoyKit.get_axis(4) > cut_off:
                     self.sendMSG(35, '\x35')
