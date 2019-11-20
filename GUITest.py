@@ -19,9 +19,11 @@ class window(wx.Frame):
 
         panel = wx.Panel(self)
 
-        img1 = wx.Image('conf/receive.bmp', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        img1 = wx.Image('conf/car.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        img2 = wx.Image('conf/hand.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+
         self.img_car = wx.StaticBitmap(panel, -1, img1, pos=(10, 10), size=(480, 360))
-        self.img_hand = wx.StaticBitmap(panel, -1, img1, pos=(500, 10), size=(480, 360))
+        self.img_hand = wx.StaticBitmap(panel, -1, img2, pos=(500, 10), size=(480, 360))
 
         self.ipLable = wx.StaticText(panel, -1, 'IP', (20, 405), (30, 20))
         self.ipText = wx.TextCtrl(panel, -1, 'tcp://192.168.2.192:5555', (55, 400), (230, 25))
@@ -41,6 +43,9 @@ class window(wx.Frame):
         self.light_status = 0
         self.moment_mode = 0
         self.bleFlag = False
+
+        self.frame_car = None
+        self.frame_hand = None
 
         self.RT_temp = 0
 
@@ -87,18 +92,18 @@ class window(wx.Frame):
             npimg = np.fromstring(img, dtype=np.uint8)
             frame = cv2.imdecode(npimg, 1)
 
-            frame_car = frame[0:360, 0:480]
-            frame_hand = frame[0:360, 480:960]
-            height1, width1 = frame_hand.shape[:2]
-            height2, width2 = frame_car.shape[:2]
+            self.frame_car = frame[0:360, 0:480]
+            self.frame_hand = frame[0:360, 480:960]
+            self.frame_hand = cv2.flip(self.frame_hand,0)
+            height1, width1 = self.frame_hand.shape[:2]
+            height2, width2 = self.frame_car.shape[:2]
             print(height2, width2)
-            frame_hand = cv2.cvtColor(frame_hand, cv2.COLOR_BGR2RGB)
-            pic_hand = wx.Bitmap.FromBuffer(width1, height1, frame_hand)
-            frame_car = cv2.cvtColor(frame_car, cv2.COLOR_BGR2RGB)
-            pic_car = wx.Bitmap.FromBuffer(width2, height2, frame_car)
+            self.frame_hand = cv2.cvtColor(self.frame_hand, cv2.COLOR_BGR2RGB)
+            pic_hand = wx.Bitmap.FromBuffer(width1, height1, self.frame_hand)
+            self.frame_car = cv2.cvtColor(self.frame_car, cv2.COLOR_BGR2RGB)
+            pic_car = wx.Bitmap.FromBuffer(width2, height2, self.frame_car)
             self.img_hand.SetBitmap(pic_hand)
             self.img_car.SetBitmap(pic_car)
-            # cv2.imwrite('conf/receive.bmp', frame_car)
 
     def start(self, event):
         import _thread
@@ -144,6 +149,14 @@ class window(wx.Frame):
                     elif event.button == 5:
                         # 精准模式
                         cut_off = 0.7
+                    elif event.button == 1:
+                        frame_hand = cv2.cvtColor(self.frame_hand, cv2.COLOR_BGR2RGB)
+                        frame_car = cv2.cvtColor(self.frame_car, cv2.COLOR_BGR2RGB)
+                        cv2.imwrite('conf/car.png', frame_car)
+                        cv2.imwrite('conf/hand.png', frame_hand)
+                    elif event.button == 6:
+                        if self.moment_mode == 1:
+                            cv2.imshow('temp',self.frame_hand)
                 elif event.type == pygame.JOYBUTTONUP:
                     if event.button == 5:
                         # 退出精准模式
