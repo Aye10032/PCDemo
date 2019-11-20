@@ -19,9 +19,9 @@ class window(wx.Frame):
 
         panel = wx.Panel(self)
 
-        img1 = wx.Image('receive.bmp', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-        self.img_hand = wx.StaticBitmap(panel, -1, img1, pos=(10, 10), size=(480, 360))
-        self.img_car = wx.StaticBitmap(panel, -1, img1, pos=(500, 10), size=(480, 360))
+        img1 = wx.Image('conf/receive.bmp', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        self.img_car = wx.StaticBitmap(panel, -1, img1, pos=(10, 10), size=(480, 360))
+        self.img_hand = wx.StaticBitmap(panel, -1, img1, pos=(500, 10), size=(480, 360))
 
         self.ipLable = wx.StaticText(panel, -1, 'IP', (20, 405), (30, 20))
         self.ipText = wx.TextCtrl(panel, -1, 'tcp://192.168.2.192:5555', (55, 400), (230, 25))
@@ -87,8 +87,8 @@ class window(wx.Frame):
             npimg = np.fromstring(img, dtype=np.uint8)
             frame = cv2.imdecode(npimg, 1)
 
-            frame_hand = frame[0:360, 0:480]
-            frame_car = frame[0:360, 480:960]
+            frame_car = frame[0:360, 0:480]
+            frame_hand = frame[0:360, 480:960]
             height1, width1 = frame_hand.shape[:2]
             height2, width2 = frame_car.shape[:2]
             print(height2, width2)
@@ -98,7 +98,7 @@ class window(wx.Frame):
             pic_car = wx.Bitmap.FromBuffer(width2, height2, frame_car)
             self.img_hand.SetBitmap(pic_hand)
             self.img_car.SetBitmap(pic_car)
-            cv2.imwrite('conf/receive.bmp', frame_car)
+            # cv2.imwrite('conf/receive.bmp', frame_car)
 
     def start(self, event):
         import _thread
