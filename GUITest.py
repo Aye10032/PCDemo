@@ -224,6 +224,16 @@ class window(wx.Frame):
                 elif self.JoyKit.get_axis(3) < -cut_off:
                     self.sendMSG(33, '\x33')
 
+class ChooseFrame(wx.Frame):
+    def __init__(self, parent):
+        wx.Frame.__init__(self, parent, -1, "选取目标", size=(505, 400), style=wx.CAPTION | wx.MINIMIZE_BOX | wx.CLOSE_BOX)
+        # icon = wx.Icon(LOGO_PATH, wx.BITMAP_TYPE_ICO)
+        # self.SetIcon(icon)
+        self.Center()
+
+
+
+        self.Bind(wx.EVT_CLOSE, self.OnExit)
 
 if __name__ == '__main__':
     app = wx.App()

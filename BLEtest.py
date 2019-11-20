@@ -47,7 +47,7 @@ class window(wx.Frame):
         self.bps = int(self.bpsText.GetValue())
         self.timex = float(self.timexText.GetValue())
         ser = serial.Serial(self.portx, self.bps, timeout=self.timex)
-        test = '\x31'
+        test = '\x51'
 
         while True:
             # time.sleep(0.2)
@@ -58,7 +58,11 @@ class window(wx.Frame):
                 result = ser.write(test.encode('utf-8'))
                 print("写总字节数:", result)
 
-                print(ser.read().hex())
+                msg = ser.read().hex()
+                if msg == 'ff':
+                    msg = ser.read(4).hex()
+                    print(msg)
+                msg = ''
 
                 # ser.close()  # 关闭串口
 
