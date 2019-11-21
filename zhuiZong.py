@@ -43,10 +43,11 @@ if __name__ == '__main__':
 
     frame = cv2.resize(frame, (720, 480))
     # Define an initial bounding box
-    bbox = (287, 23, 86, 320)
+    bbox = (287, 23, 86, 320) # 横，纵，宽，高
 
     # Uncomment the line below to select a different bounding box
     bbox = cv2.selectROI(frame, False, False)
+    print(bbox)
 
     # Initialize tracker with first frame and bounding box
     ok = tracker.init(frame, bbox)
@@ -67,7 +68,7 @@ if __name__ == '__main__':
         # Update tracker
         ok, bbox = tracker.update(frame)
 
-        print(bbox)
+        # print(bbox)
 
         # Calculate Frames per second (FPS)
         fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer);

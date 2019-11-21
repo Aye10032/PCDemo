@@ -10,6 +10,8 @@ import zmq
 import base64
 import numpy as np
 
+(major_ver, minor_ver, subminor_ver) = cv2.__version__.split('.')
+
 
 class window(wx.Frame):
     def __init__(self, parent, id):
@@ -43,6 +45,7 @@ class window(wx.Frame):
         self.light_status = 0
         self.moment_mode = 0
         self.bleFlag = False
+        self.CCTV_flag = True
 
         self.frame_car = None
         self.frame_hand = None
@@ -86,7 +89,7 @@ class window(wx.Frame):
         hand_socket.connect('tcp://192.168.2.192:5555')
         hand_socket.setsockopt_string(zmq.SUBSCRIBE, np.unicode(''))
 
-        while True:
+        while self.CCTV_flag:
             source_hand = hand_socket.recv_string()
             img = base64.b64decode(source_hand)
             npimg = np.fromstring(img, dtype=np.uint8)
@@ -94,7 +97,7 @@ class window(wx.Frame):
 
             self.frame_car = frame[0:360, 0:480]
             self.frame_hand = frame[0:360, 480:960]
-            self.frame_hand = cv2.flip(self.frame_hand,0)
+            self.frame_hand = cv2.flip(self.frame_hand, 0)
             height1, width1 = self.frame_hand.shape[:2]
             height2, width2 = self.frame_car.shape[:2]
             print(height2, width2)
@@ -104,6 +107,77 @@ class window(wx.Frame):
             pic_car = wx.Bitmap.FromBuffer(width2, height2, self.frame_car)
             self.img_hand.SetBitmap(pic_hand)
             self.img_car.SetBitmap(pic_car)
+
+    def receiveimg2(self, event):
+        context = zmq.Context()
+
+        hand_socket = context.socket(zmq.SUB)
+        hand_socket.connect('tcp://192.168.2.192:5555')
+        hand_socket.setsockopt_string(zmq.SUBSCRIBE, np.unicode(''))
+
+        # cv追踪部分
+        tracker_types = ['BOOSTING', 'MIL', 'KCF', 'TLD', 'MEDIANFLOW', 'GOTURN']
+        tracker_type = tracker_types[4]
+
+        if int(minor_ver) < 3:
+            tracker = cv2.Tracker_create(tracker_type)
+        else:
+            if tracker_type == 'BOOSTING':
+                tracker = cv2.TrackerBoosting_create()
+            if tracker_type == 'MIL':
+                tracker = cv2.TrackerMIL_create()
+            if tracker_type == 'KCF':
+                tracker = cv2.TrackerKCF_create()
+            if tracker_type == 'TLD':
+                tracker = cv2.TrackerTLD_create()
+            if tracker_type == 'MEDIANFLOW':
+                tracker = cv2.TrackerMedianFlow_create()
+            if tracker_type == 'GOTURN':
+                tracker = cv2.TrackerGOTURN_create()
+
+        x = 100
+        y = 100
+        a = 10
+        b = 10
+
+        while not self.CCTV_flag:
+            source_hand = hand_socket.recv_string()
+            img = base64.b64decode(source_hand)
+            npimg = np.fromstring(img, dtype=np.uint8)
+            frame = cv2.imdecode(npimg, 1)
+            self.frame_hand = frame[0:360, 480:960]
+            self.frame_hand = cv2.flip(self.frame_hand, 0)
+            height1, width1 = self.frame_hand.shape[:2]
+
+            for event in pygame.event.get():
+                if event.type == pygame.JOYHATMOTION:
+                    if event.value == (0, 1):
+                        y += 1
+                    elif event.value == (0, -1):
+                        y -= 1
+                    elif event.value == (1, 0):
+                        x += 1
+                    elif event.value == (-1, 0):
+                        x -= 1
+                elif event.type == pygame.JOYBUTTONDOWN:
+                    if event.value == 4:
+                        if self.JoyKit.get_axis(5) > -0.6:
+                            a += 1
+                        elif self.JoyKit.get_axis(2) > -0.6:
+                            a -= 1
+                    elif event.value == 5:
+                        if self.JoyKit.get_axis(5) > -0.6:
+                            b += 1
+                        elif self.JoyKit.get_axis(2) > -0.6:
+                            b -= 1
+
+            bbox = (x, y, a, b)  # 横，纵，宽，高
+            p1 = (int(bbox[0]), int(bbox[1]))
+            p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
+            cv2.rectangle(self.frame_hand, p1, p2, (0, 255, 0), 2, 1)
+            height1, width1 = self.frame_hand.shape[:2]
+            self.frame_hand = cv2.cvtColor(self.frame_hand, cv2.COLOR_BGR2RGB)
+            pic_hand = wx.Bitmap.FromBuffer(width1, height1, self.frame_hand)
 
     def start(self, event):
         import _thread
@@ -126,14 +200,15 @@ class window(wx.Frame):
             time.sleep(0.02)
             for event in pygame.event.get():
                 if event.type == pygame.JOYHATMOTION:
-                    # 车灯
-                    if event.value == (0, 1):
-                        if self.light_status == 0:
-                            self.sendMSG(50, '\x50')
-                            self.light_status = 1
-                        elif self.light_status == 1:
-                            self.sendMSG(51, '\x51')
-                            self.light_status = 0
+                    if self.moment_mode == 0:
+                        # 车灯
+                        if event.value == (0, 1):
+                            if self.light_status == 0:
+                                self.sendMSG(50, '\x50')
+                                self.light_status = 1
+                            elif self.light_status == 1:
+                                self.sendMSG(51, '\x51')
+                                self.light_status = 0
                 elif event.type == pygame.JOYBUTTONDOWN:
                     if event.button == 7:
                         # 切换至抓取模式
@@ -150,13 +225,17 @@ class window(wx.Frame):
                         # 精准模式
                         cut_off = 0.7
                     elif event.button == 1:
+                        # 保存当前摄像头图像
                         frame_hand = cv2.cvtColor(self.frame_hand, cv2.COLOR_BGR2RGB)
                         frame_car = cv2.cvtColor(self.frame_car, cv2.COLOR_BGR2RGB)
                         cv2.imwrite('conf/car.png', frame_car)
                         cv2.imwrite('conf/hand.png', frame_hand)
                     elif event.button == 6:
+                        # 自动追踪开启
                         if self.moment_mode == 1:
-                            cv2.imshow('temp',self.frame_hand)
+                            self.CCTV_flag = False
+                            import _thread
+                            _thread.start_new_thread(self.receiveimg2, (event,))
                 elif event.type == pygame.JOYBUTTONUP:
                     if event.button == 5:
                         # 退出精准模式
@@ -194,46 +273,37 @@ class window(wx.Frame):
                     self.sendMSG(53, '\x53')
             # 抓取模式
             elif self.moment_mode == 1:
-                # 抓握
-                if self.JoyKit.get_axis(5) > -0.6:
-                    self.sendMSG(31, '\x31')
-                elif self.JoyKit.get_axis(2) > -0.6:
-                    self.sendMSG(32, '\x32')
-                # 整体前后
-                elif self.JoyKit.get_axis(1) > cut_off:
-                    self.sendMSG(37, '\x37')
-                    time.sleep(1)
-                elif self.JoyKit.get_axis(1) < -cut_off:
-                    self.sendMSG(38, '\x38')
-                    time.sleep(1)
-                # 整体左右
-                elif self.JoyKit.get_axis(0) > cut_off:
-                    self.sendMSG(42, '\x42')
-                    time.sleep(1)
-                elif self.JoyKit.get_axis(0) < -cut_off:
-                    self.sendMSG(41, '\x41')
-                    time.sleep(1)
-                # 手部上下
-                elif self.JoyKit.get_axis(4) > cut_off:
-                    self.sendMSG(35, '\x35')
-                elif self.JoyKit.get_axis(4) < -cut_off:
-                    self.sendMSG(36, '\x36')
-                # 手部左右
-                elif self.JoyKit.get_axis(3) > cut_off:
-                    self.sendMSG(34, '\x34')
-                elif self.JoyKit.get_axis(3) < -cut_off:
-                    self.sendMSG(33, '\x33')
+                if self.CCTV_flag:
+                    # 抓握
+                    if self.JoyKit.get_axis(5) > -0.6:
+                        self.sendMSG(31, '\x31')
+                    elif self.JoyKit.get_axis(2) > -0.6:
+                        self.sendMSG(32, '\x32')
+                    # 整体前后
+                    elif self.JoyKit.get_axis(1) > cut_off:
+                        self.sendMSG(37, '\x37')
+                        time.sleep(1)
+                    elif self.JoyKit.get_axis(1) < -cut_off:
+                        self.sendMSG(38, '\x38')
+                        time.sleep(1)
+                    # 整体左右
+                    elif self.JoyKit.get_axis(0) > cut_off:
+                        self.sendMSG(42, '\x42')
+                        time.sleep(1)
+                    elif self.JoyKit.get_axis(0) < -cut_off:
+                        self.sendMSG(41, '\x41')
+                        time.sleep(1)
+                    # 手部上下
+                    elif self.JoyKit.get_axis(4) > cut_off:
+                        self.sendMSG(35, '\x35')
+                    elif self.JoyKit.get_axis(4) < -cut_off:
+                        self.sendMSG(36, '\x36')
+                    # 手部左右
+                    elif self.JoyKit.get_axis(3) > cut_off:
+                        self.sendMSG(34, '\x34')
+                    elif self.JoyKit.get_axis(3) < -cut_off:
+                        self.sendMSG(33, '\x33')
 
-class ChooseFrame(wx.Frame):
-    def __init__(self, parent):
-        wx.Frame.__init__(self, parent, -1, "选取目标", size=(505, 400), style=wx.CAPTION | wx.MINIMIZE_BOX | wx.CLOSE_BOX)
-        # icon = wx.Icon(LOGO_PATH, wx.BITMAP_TYPE_ICO)
-        # self.SetIcon(icon)
-        self.Center()
-
-
-
-        self.Bind(wx.EVT_CLOSE, self.OnExit)
 
 if __name__ == '__main__':
     app = wx.App()
