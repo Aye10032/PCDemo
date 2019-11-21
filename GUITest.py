@@ -41,6 +41,8 @@ class window(wx.Frame):
         self.BLEbtn = wx.Button(panel, -1, '连接', pos=(300, 440), size=(70, 25))
         self.Bind(wx.EVT_BUTTON, self.connble, self.BLEbtn)
 
+        wx.StaticText(panel,-1,'温度：',(500,405),(40,20))
+
         # 相关数据
         self.light_status = 0
         self.moment_mode = 0
@@ -97,7 +99,6 @@ class window(wx.Frame):
 
             self.frame_car = frame[0:360, 0:480]
             self.frame_hand = frame[0:360, 480:960]
-            self.frame_hand = cv2.flip(self.frame_hand, 0)
             height1, width1 = self.frame_hand.shape[:2]
             height2, width2 = self.frame_car.shape[:2]
             print(height2, width2)
@@ -198,6 +199,12 @@ class window(wx.Frame):
         cut_off = 0.2
         while True:
             time.sleep(0.02)
+            if self.bleFlag:
+                msg = self.ser.read().hex()
+                if msg == 'ff':
+                    msg = self.ser.read(4).hex()
+                    print(msg)
+                msg = ''
             for event in pygame.event.get():
                 if event.type == pygame.JOYHATMOTION:
                     if self.moment_mode == 0:
