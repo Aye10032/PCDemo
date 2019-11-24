@@ -19,6 +19,9 @@ class window(wx.Frame):
                           style=wx.CAPTION | wx.MINIMIZE_BOX | wx.CLOSE_BOX | wx.SYSTEM_MENU)
         self.Center()
 
+        icon = wx.Icon('conf/logo.ico', wx.BITMAP_TYPE_ICO)
+        self.SetIcon(icon)
+
         panel = wx.Panel(self)
 
         img1 = wx.Image('conf/car.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
@@ -41,7 +44,14 @@ class window(wx.Frame):
         self.BLEbtn = wx.Button(panel, -1, '连接', pos=(300, 440), size=(70, 25))
         self.Bind(wx.EVT_BUTTON, self.connble, self.BLEbtn)
 
-        wx.StaticText(panel,-1,'温度：',(500,405),(40,20))
+        wx.StaticText(panel, -1, '温度：', (500, 405), (50, 20))
+        self.temperatureText = wx.TextCtrl(panel, -1, '18', (550, 400), (30, 25),style=wx.TE_READONLY)
+
+        wx.StaticText(panel, -1, '湿度：', (500, 435), (50, 20))
+        self.humidityText = wx.TextCtrl(panel, -1, '26', (550, 430), (30, 25), style=wx.TE_READONLY)
+
+        wx.StaticText(panel, -1, '烟雾：', (500, 465), (50, 20))
+        self.poisionText = wx.TextCtrl(panel, -1, 'NO', (550, 460), (30, 25), style=wx.TE_READONLY)
 
         # 相关数据
         self.light_status = 0
@@ -91,6 +101,9 @@ class window(wx.Frame):
         hand_socket.connect('tcp://192.168.2.192:5555')
         hand_socket.setsockopt_string(zmq.SUBSCRIBE, np.unicode(''))
 
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter('output.mp4', fourcc, 60, (480, 360))
+
         while self.CCTV_flag:
             source_hand = hand_socket.recv_string()
             img = base64.b64decode(source_hand)
@@ -102,6 +115,7 @@ class window(wx.Frame):
             height1, width1 = self.frame_hand.shape[:2]
             height2, width2 = self.frame_car.shape[:2]
             print(height2, width2)
+            out.write(self.frame_car)
             self.frame_hand = cv2.cvtColor(self.frame_hand, cv2.COLOR_BGR2RGB)
             pic_hand = wx.Bitmap.FromBuffer(width1, height1, self.frame_hand)
             self.frame_car = cv2.cvtColor(self.frame_car, cv2.COLOR_BGR2RGB)
@@ -203,7 +217,10 @@ class window(wx.Frame):
                 msg = self.ser.read().hex()
                 if msg == 'ff':
                     msg = self.ser.read(4).hex()
-                    print(msg)
+                    if msg[:1] == '31':
+                        self.poisionText.SetValue('No')
+                    elif msg[:1] == '32':
+                        self.poisionText.SetValue('Yes')
                 msg = ''
             for event in pygame.event.get():
                 if event.type == pygame.JOYHATMOTION:
@@ -289,22 +306,24 @@ class window(wx.Frame):
                     # 整体前后
                     elif self.JoyKit.get_axis(1) > cut_off:
                         self.sendMSG(37, '\x37')
-                        time.sleep(1)
+                        time.sleep(0.5)
                     elif self.JoyKit.get_axis(1) < -cut_off:
                         self.sendMSG(38, '\x38')
-                        time.sleep(1)
+                        time.sleep(0.5)
                     # 整体左右
                     elif self.JoyKit.get_axis(0) > cut_off:
-                        self.sendMSG(42, '\x42')
-                        time.sleep(1)
-                    elif self.JoyKit.get_axis(0) < -cut_off:
                         self.sendMSG(41, '\x41')
-                        time.sleep(1)
+                        time.sleep(0.5)
+                    elif self.JoyKit.get_axis(0) < -cut_off:
+                        self.sendMSG(42, '\x42')
+                        time.sleep(0.5)
                     # 手部上下
                     elif self.JoyKit.get_axis(4) > cut_off:
                         self.sendMSG(35, '\x35')
+                        time.sleep(0.5)
                     elif self.JoyKit.get_axis(4) < -cut_off:
                         self.sendMSG(36, '\x36')
+                        time.sleep(0.5)
                     # 手部左右
                     elif self.JoyKit.get_axis(3) > cut_off:
                         self.sendMSG(34, '\x34')
