@@ -86,12 +86,10 @@ class window(wx.Frame):
             self.frame = cv2.resize(self.frame, (640, 360))
             flag, self.track_bbox = tracker.update(self.frame)
             if flag:
-                # Tracking success
                 p1 = (int(self.track_bbox[0]), int(self.track_bbox[1]))
                 p2 = (int(self.track_bbox[0] + self.track_bbox[2]), int(self.track_bbox[1] + self.track_bbox[3]))
                 cv2.rectangle(self.frame, p1, p2, (0, 255, 0), 2, 1)
             else:
-                # Tracking failure
                 cv2.putText(self.frame, "Tracking failure detected", (50, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255),
                             2)
 
