@@ -168,7 +168,7 @@ class Run():
                                 (0, 0, 255),
                                 2)
                     self.count += 1
-                    if self.count >= 20:
+                    if self.count >= 5:
                         self.isnomal = True
 
                 cv2.putText(frame_hand,

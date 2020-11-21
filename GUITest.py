@@ -33,7 +33,7 @@ class window(wx.Frame):
         self.img_hand = wx.StaticBitmap(panel, -1, img2, pos=(500, 10), size=(480, 360))
 
         self.ipLable = wx.StaticText(panel, -1, 'IP', (20, 405), (30, 20))
-        self.ipText = wx.TextCtrl(panel, -1, 'tcp://192.168.2.191:5555', (55, 400), (230, 25))
+        self.ipText = wx.TextCtrl(panel, -1, 'tcp://192.168.2.19:5555', (55, 400), (230, 25))
         self.startbtn = wx.Button(panel, -1, '连接', pos=(300, 400), size=(70, 25))
         self.Bind(wx.EVT_BUTTON, self.start, self.startbtn)
 
