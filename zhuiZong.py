@@ -12,7 +12,7 @@ if __name__ == '__main__':
     tracker_type = tracker_types[4]
 
     if int(minor_ver) < 3:
-        tracker = cv2.Tracker_create(tracker_type)
+        tracker = cv2.TrackerMedianFlow_create()
     else:
         if tracker_type == 'BOOSTING':
             tracker = cv2.TrackerBoosting_create()

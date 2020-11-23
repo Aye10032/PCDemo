@@ -3,25 +3,26 @@ import cv2
 import zmq
 import time
 import numpy as np
-import smbus
+import smbus  # smbus
 import math
 from socket import *
+import _thread
 import _thread
 import serial
 
 
 class Run():
     def __init__(self):
-        ip = 'tcp://192.168.2.191:5555'
+        ip = 'tcp://192.168.2.19:5555'
 
         self.context = zmq.Context()
         self.footage_socket = self.context.socket(zmq.PUB)
         self.footage_socket.bind(ip)
 
-        self.power_mgmt_1 = 0x6b
-        self.bus = smbus.SMBus(1)  # or bus = smbus.SMBus(1) for Revision 2 boards
-        self.address = 0x68  # This is the address value read via the i2cdetect command
-        self.bus.write_byte_data(self.address, self.power_mgmt_1, 0)  # Now wake the 6050 up as it starts in sleep mode
+        # self.power_mgmt_1 = 0x6b
+        # self.bus = smbus.SMBus(1)  # or bus = smbus2.SMBus(1) for Revision 2 boards
+        # self.address = 0x68  # This is the address value read via the i2cdetect command
+        # self.bus.write_byte_data(self.address, self.power_mgmt_1, 0)  # Now wake the 6050 up as it starts in sleep mode
 
         self.ser = serial.Serial('/dev/ttyAMA0', 9600)
 
@@ -29,12 +30,14 @@ class Run():
         self.bbox = None
         self.count = 0
 
-        self.capture1 = cv2.VideoCapture(0)
-        self.capture2 = cv2.VideoCapture(2)
-        self.capture1.set(3, 1280)
-        self.capture1.set(4, 720)
-        self.capture2.set(3, 1280)
-        self.capture2.set(4, 720)
+        self.capture1 = cv2.VideoCapture(2)
+        self.capture2 = cv2.VideoCapture(0)
+        self.capture1.set(3, 640)
+        self.capture1.set(4, 360)
+        self.capture2.set(3, 640)
+        self.capture2.set(4, 360)
+        self.capture1.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
+        self.capture2.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
 
         self.frame_hand_temp = None
 
@@ -105,16 +108,18 @@ class Run():
 
     def nomal_send(self):
         while self.isnomal:
-            accel_xout = self.read_word_2c(0x3b)
-            accel_yout = self.read_word_2c(0x3d)
-            accel_zout = self.read_word_2c(0x3f)
-
-            accel_xout_scaled = accel_xout / 16384.0
-            accel_yout_scaled = accel_yout / 16384.0
-            accel_zout_scaled = accel_zout / 16384.0
-
-            x_rotation = self.get_x_rotation(accel_xout_scaled, accel_yout_scaled, accel_zout_scaled)
-            y_rotation = self.get_y_rotation(accel_xout_scaled, accel_yout_scaled, accel_zout_scaled)
+            # accel_xout = self.read_word_2c(0x3b)
+            # accel_yout = self.read_word_2c(0x3d)
+            # accel_zout = self.read_word_2c(0x3f)
+            #
+            # accel_xout_scaled = accel_xout / 16384.0
+            # accel_yout_scaled = accel_yout / 16384.0
+            # accel_zout_scaled = accel_zout / 16384.0
+            #
+            # x_rotation = self.get_x_rotation(accel_xout_scaled, accel_yout_scaled, accel_zout_scaled)
+            # y_rotation = self.get_y_rotation(accel_xout_scaled, accel_yout_scaled, accel_zout_scaled)
+            x_rotation = 90
+            y_rotation = 80
             x_text = 'x: ' + str(format(x_rotation, '.2f'))
             y_text = 'y: ' + str(format(y_rotation, '.2f'))
 
@@ -126,7 +131,7 @@ class Run():
             frame_car = cv2.resize(frame_car, (640, 360))
             frame_hand = frame_hand[0:360, 80:560]
             frame_car = frame_car[0:360, 80:560]
-            frame_car = cv2.flip(frame_car, 0)
+            frame_car = cv2.flip(frame_car, 180)
             self.frame_hand_temp = frame_hand.copy()
             frame = np.hstack((frame_hand, frame_car))
             localtime = time.strftime("%H:%M:%S", time.localtime())
@@ -156,7 +161,7 @@ class Run():
                 frame_car = cv2.resize(frame_car, (640, 360))
                 frame_hand = frame_hand[0:360, 80:560]
                 frame_car = frame_car[0:360, 80:560]
-                # frame_car = cv2.flip(frame_car, 0)
+                frame_car = cv2.flip(frame_car, 180)
                 flag, self.bbox = tracker.update(frame_hand)
                 if flag:
                     p1 = (int(self.bbox[0]), int(self.bbox[1]))
