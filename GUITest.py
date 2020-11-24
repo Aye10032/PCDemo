@@ -217,6 +217,7 @@ class window(wx.Frame):
                         elif event.button == 6:
                             # 自动追踪开启
                             if self.moment_mode == 0 and not self.bbox_start:
+                                self.sendMSG(57, '\x57')  # 摄像头归正
                                 self.readVideo = False
                                 self.bbox_start = True
                                 print('stop video')
