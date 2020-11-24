@@ -1,6 +1,6 @@
 import time
 
-import serial.tools.list_ports
+import serial.tools.list_ports  # pyserial
 
 import pygame
 import serial
@@ -26,8 +26,8 @@ class window(wx.Frame):
 
         panel = wx.Panel(self)
 
-        img1 = wx.Image('conf/car.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-        img2 = wx.Image('conf/hand.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        img1 = wx.Image('conf/car.jpg', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        img2 = wx.Image('conf/car.jpg', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
 
         self.img_car = wx.StaticBitmap(panel, -1, img1, pos=(10, 10), size=(480, 360))
         self.img_hand = wx.StaticBitmap(panel, -1, img2, pos=(500, 10), size=(480, 360))
@@ -38,7 +38,7 @@ class window(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.start, self.startbtn)
 
         self.portLable = wx.StaticText(panel, -1, 'prot', (20, 445), (30, 20))
-        self.portText = wx.TextCtrl(panel, -1, 'COM9', (55, 440), (60, 25))
+        self.portText = wx.TextCtrl(panel, -1, 'COM5', (55, 440), (60, 25))
         self.bpsLable = wx.StaticText(panel, -1, 'pbs', (160, 445), (30, 20))
         self.list = ['300', '600', '1200', '2400', '4800', '9600', '19200', '38400', '43000', '56000', '57600',
                      '115200']
@@ -87,8 +87,8 @@ class window(wx.Frame):
         self.axe_count = self.JoyKit.get_numaxes()
         print(self.axe_count)
 
-        if self.JoyKit_name == 'XInput Controller #1':
-            _thread.start_new_thread(self.xbox_input, ())
+        # if self.JoyKit_name == 'Xbox One S Controller':
+        _thread.start_new_thread(self.xbox_input, ())
 
         # 蓝牙部分
         port_list = list(serial.tools.list_ports.comports())
@@ -99,13 +99,13 @@ class window(wx.Frame):
             for i in range(0, len(port_list)):
                 print(port_list[i])
 
-        self.portx = "COM9"
+        self.portx = "COM5"
         self.bps = '9600'
         self.timex = 0.2
         self.ser = None
 
         # socket
-        HOST = '192.168.2.191'  # or 'localhost'
+        HOST = '192.168.2.19'  # or 'localhost'
         PORT = 6655
         BUFSIZ = 1024
         ADDR = (HOST, PORT)
@@ -122,14 +122,15 @@ class window(wx.Frame):
         while self.readVideo:
             source_hand = hand_socket.recv_string()
             img = base64.b64decode(source_hand)
-            npimg = np.fromstring(img, dtype=np.uint8)
+            # npimg = np.fromstring(img, dtype=np.uint8)
+            npimg = np.frombuffer(img, dtype=np.uint8)
             frame = cv2.imdecode(npimg, 1)
 
             self.frame_car = frame[0:360, 0:480]
             self.frame_hand = frame[0:360, 480:960]
             height1, width1 = self.frame_hand.shape[:2]
             height2, width2 = self.frame_car.shape[:2]
-            print(height2, width2)
+            # print(height2, width2)
             self.frame_hand_temp = cv2.cvtColor(self.frame_hand, cv2.COLOR_BGR2RGB)
             pic_hand = wx.Bitmap.FromBuffer(width1, height1, self.frame_hand_temp)
             self.frame_car_temp = cv2.cvtColor(self.frame_car, cv2.COLOR_BGR2RGB)
@@ -183,6 +184,7 @@ class window(wx.Frame):
                 msg = ''
             if self.readVideo:
                 for event in pygame.event.get():
+                    # print(event.value)
                     if event.type == pygame.JOYHATMOTION:
                         if self.moment_mode == 0:
                             # 车灯
@@ -278,16 +280,16 @@ class window(wx.Frame):
                         time.sleep(0.5)
                     # 手部上下
                     elif self.JoyKit.get_axis(4) > cut_off:
-                        self.sendMSG(35, '\x35')
+                        self.sendMSG(36, '\x36')
                         time.sleep(0.5)
                     elif self.JoyKit.get_axis(4) < -cut_off:
-                        self.sendMSG(36, '\x36')
+                        self.sendMSG(35, '\x35')
                         time.sleep(0.5)
                     # 手部左右
                     elif self.JoyKit.get_axis(3) > cut_off:
-                        self.sendMSG(34, '\x34')
-                    elif self.JoyKit.get_axis(3) < -cut_off:
                         self.sendMSG(33, '\x33')
+                    elif self.JoyKit.get_axis(3) < -cut_off:
+                        self.sendMSG(34, '\x34')
 
             elif self.bbox_start:
                 for event in pygame.event.get():
