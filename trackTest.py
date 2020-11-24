@@ -16,7 +16,7 @@ class window(wx.Frame):
 
         panel = wx.Panel(self)
 
-        img = wx.Image('conf/car.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        img = wx.Image('conf/none.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         self.img_car = wx.StaticBitmap(panel, -1, img, pos=(10, 10), size=(640, 360))
 
         self.readVideo = False

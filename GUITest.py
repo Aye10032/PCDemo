@@ -126,10 +126,18 @@ class window(wx.Frame):
             npimg = np.frombuffer(img, dtype=np.uint8)
             frame = cv2.imdecode(npimg, 1)
 
-            self.frame_car = frame[0:360, 0:480]
-            self.frame_hand = frame[0:360, 480:960]
+            height, width = frame.shape[:2]
+
+            if width == 960:
+                self.frame_car = frame[0:360, 0:480]
+                self.frame_hand = frame[0:360, 480:960]
+            else:
+                self.frame_car = frame.copy()
+                self.frame_hand = cv2.imread('none.png')
+
             height1, width1 = self.frame_hand.shape[:2]
             height2, width2 = self.frame_car.shape[:2]
+
             # print(height2, width2)
             self.frame_hand_temp = cv2.cvtColor(self.frame_hand, cv2.COLOR_BGR2RGB)
             pic_hand = wx.Bitmap.FromBuffer(width1, height1, self.frame_hand_temp)
@@ -212,7 +220,7 @@ class window(wx.Frame):
                             cut_off = 0.7
                         elif event.button == 1:
                             # 保存当前摄像头图像
-                            cv2.imwrite('conf/car.png', self.frame_car)
+                            cv2.imwrite('conf/none.png', self.frame_car)
                             cv2.imwrite('conf/hand.png', self.frame_hand)
                         elif event.button == 6:
                             # 自动追踪开启
