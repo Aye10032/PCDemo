@@ -141,8 +141,8 @@ class Run():
             cv2.putText(frame, x_text, (490, 50), cv2.FONT_ITALIC, 0.75, (255, 255, 255), 1)
             cv2.putText(frame, y_text, (490, 20), cv2.FONT_ITALIC, 0.75, (10, 10, 10), 2)
             cv2.putText(frame, y_text, (490, 20), cv2.FONT_ITALIC, 0.75, (255, 255, 255), 1)
-            height, width = frame.shape[:2]
-            print(str(format(x_rotation, '.2f')))
+            # height, width = frame.shape[:2]
+            # print(str(format(x_rotation, '.2f')))
             buffer = cv2.imencode('.jpg', frame)[1]
             jpg_as_text = base64.b64encode(buffer)
             self.footage_socket.send(jpg_as_text)
@@ -163,10 +163,61 @@ class Run():
                 frame_car = frame_car[0:360, 80:560]
                 frame_car = cv2.flip(frame_car, 180)
                 flag, self.bbox = tracker.update(frame_hand)
+
+                # print(self.bbox)
+                timer = cv2.getTickCount()
+                fps = int(cv2.getTickFrequency() / (cv2.getTickCount() - timer))
+
+                height, width = frame_car.shape[:2]
+
+                p_x = int(self.bbox[0])
+                p_y = int(self.bbox[1])
+                p_w = int(self.bbox[2])
+                p_h = int(self.bbox[3])
+                p1 = (p_x, p_y)
+                p2 = (p_x + p_w, p_y + p_h)
+                c_x = int(self.bbox[0] + self.bbox[2] / 2)
+                c_y = int(self.bbox[1] + self.bbox[3] / 2)
+                proportion_x = -(0.5 - c_x / width)
+                proportion_y = -(0.5 - c_y / height)
+
                 if flag:
-                    p1 = (int(self.bbox[0]), int(self.bbox[1]))
-                    p2 = (int(self.bbox[0] + self.bbox[2]), int(self.bbox[1] + self.bbox[3]))
-                    cv2.rectangle(frame_hand, p1, p2, (0, 255, 0), 2, 1)
+                    cv2.rectangle(frame_hand, p1, p2, (255, 255, 255), 2, 1)
+                    cv2.rectangle(frame_hand, p1, p2, (0, 0, 0), 1, 1)
+
+                    cv2.circle(frame_hand, (c_x, c_y), 1, (0, 0, 255), 2, 0)
+
+                    cv2.line(frame_hand, (0, c_y), (c_x - int(p_w / 2), c_y), (255, 255, 255), 2, 0)
+                    cv2.line(frame_hand, (0, c_y), (c_x - int(p_w / 2), c_y), (0, 0, 0), 1, 0)
+                    cv2.line(frame_hand, (c_x, 0), (c_x, c_y - int(p_h / 2)), (255, 255, 255), 2, 0)
+                    cv2.line(frame_hand, (c_x, 0), (c_x, c_y - int(p_h / 2)), (0, 0, 0), 1, 0)
+                    cv2.line(frame_hand, (c_x + int(p_w / 2), c_y), (width, c_y), (255, 255, 255), 2, 0)
+                    cv2.line(frame_hand, (c_x + int(p_w / 2), c_y), (width, c_y), (0, 0, 0), 1, 0)
+                    cv2.line(frame_hand, (c_x, c_y + int(p_h / 2)), (c_x, height), (255, 255, 255), 2, 0)
+                    cv2.line(frame_hand, (c_x, c_y + int(p_h / 2)), (c_x, height), (0, 0, 0), 1, 0)
+
+                    cv2.putText(frame_hand, "[%.2f, %.2f]" % (proportion_x, proportion_y),
+                                (int(c_x + 5), int(p_y - 8)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+
+                    if proportion_y <= -0.1:
+                        self.ser.write(b'\x56')
+                    elif proportion_y >= 0.1:
+                        self.ser.write(b'\x55')
+
+                    if proportion_x <= -0.1:
+                        self.ser.write(b'\x46')
+                        time.sleep(1)
+                        self.ser.write(47)
+                    elif proportion_x >= 0.1:
+                        self.ser.write(b'\x45')
+                        time.sleep(1)
+                        self.ser.write(47)
+                    else:
+                        if p_w * p_h >= 0.8 * width * 0.8 * height:
+                            self.ser.write(b'\x47')
+                        else:
+                            self.ser.write(b'\x43')
+
                     self.count = 0
                 else:
                     cv2.putText(frame_hand, "Tracking failure detected", (50, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.75,
@@ -176,26 +227,26 @@ class Run():
                     if self.count >= 5:
                         self.isnomal = True
 
-                cv2.putText(frame_hand,
-                            "Center : (" + str(int(self.bbox[0])) + ',' + str(int(self.bbox[1])) + ")",
-                            (10, 20),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
-                cv2.putText(frame_hand,
-                            "Center : (" + str(int(self.bbox[0])) + ',' + str(int(self.bbox[1])) + ")",
-                            (10, 20),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 255), 1)
+                cv2.putText(frame_hand, "FPS : " + str(fps),
+                            (10, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+                cv2.putText(frame_hand, "FPS : " + str(fps),
+                            (10, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
 
-                cv2.putText(frame_hand, "Size : " + str(int(self.bbox[2] * self.bbox[3])), (10, 50),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.75,
-                            (0, 0, 255), 2)
-                cv2.putText(frame_hand, "Size : " + str(int(self.bbox[2] * self.bbox[3])), (10, 50),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.75,
-                            (255, 255, 255), 1)
+                cv2.putText(frame_hand,
+                            "Center : (" + str(c_x) + ',' + str(c_y) + ")",
+                            (10, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+                cv2.putText(frame_hand,
+                            "Center : (" + str(c_x) + ',' + str(c_y) + ")",
+                            (10, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+
+                cv2.putText(frame_hand, "Size : " + str(p_w * p_h),
+                            (10, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+                cv2.putText(frame_hand, "Size : " + str(p_w * p_h),
+                            (10, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
                 frame = np.hstack((frame_hand, frame_car))
                 localtime = time.strftime("%H:%M:%S", time.localtime())
                 cv2.putText(frame, localtime, (350, 340), cv2.FONT_ITALIC, 0.75, (10, 10, 10), 2)
                 cv2.putText(frame, localtime, (350, 340), cv2.FONT_ITALIC, 0.75, (255, 255, 255), 1)
-                height, width = frame.shape[:2]
                 buffer = cv2.imencode('.jpg', frame)[1]
                 jpg_as_text = base64.b64encode(buffer)
                 self.footage_socket.send(jpg_as_text)
