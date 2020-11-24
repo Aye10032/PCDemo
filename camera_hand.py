@@ -209,13 +209,13 @@ class Run():
                     # if proportion_x <= -0.1:
                     #     self.ser.write(b'\x46')
                     #     time.sleep(1)
-                    #     self.ser.write(b'\x47')
+                    #     self.ser.write(47)
                     # elif proportion_x >= 0.1:
                     #     self.ser.write(b'\x45')
                     #     time.sleep(1)
-                    #     self.ser.write(b'\x47')
+                    #     self.ser.write(47)
                     # else:
-                    if p_w * p_h >= 0.8 * width * 0.8 * height:
+                    if p_w * p_h >= 0.8 * width * 0.9 * height:
                         self.ser.write(b'\x47')
                     else:
                         self.ser.write(b'\x43')
@@ -246,9 +246,9 @@ class Run():
                 cv2.putText(frame_hand, "Size : " + str(p_w * p_h),
                             (10, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
                 # frame = np.hstack((frame_hand, frame_car))
-                # localtime = time.strftime("%H:%M:%S", time.localtime())
-                # cv2.putText(frame, localtime, (350, 340), cv2.FONT_ITALIC, 0.75, (10, 10, 10), 2)
-                # cv2.putText(frame, localtime, (350, 340), cv2.FONT_ITALIC, 0.75, (255, 255, 255), 1)
+                localtime = time.strftime("%H:%M:%S", time.localtime())
+                cv2.putText(frame_hand, localtime, (350, 340), cv2.FONT_ITALIC, 0.75, (10, 10, 10), 2)
+                cv2.putText(frame_hand, localtime, (350, 340), cv2.FONT_ITALIC, 0.75, (255, 255, 255), 1)
                 buffer = cv2.imencode('.jpg', frame_hand)[1]
                 jpg_as_text = base64.b64encode(buffer)
                 self.footage_socket.send(jpg_as_text)
