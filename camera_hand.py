@@ -38,6 +38,8 @@ class Run():
         self.capture2.set(4, 360)
         self.capture1.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
         self.capture2.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
+        self.capture1.set(cv2.CAP_PROP_FPS, 15)
+        self.capture2.set(cv2.CAP_PROP_FPS, 15)
 
         self.frame_hand_temp = None
 
@@ -154,21 +156,21 @@ class Run():
 
             while not self.isnomal:
                 success1, frame_hand = self.capture1.read()
-                success2, frame_car = self.capture2.read()
-                if not success1 or not success2:
+                # success2, frame_car = self.capture2.read()
+                if not success1:
                     break
                 frame_hand = cv2.resize(frame_hand, (640, 360))
-                frame_car = cv2.resize(frame_car, (640, 360))
+                # frame_car = cv2.resize(frame_car, (640, 360))
                 frame_hand = frame_hand[0:360, 80:560]
-                frame_car = frame_car[0:360, 80:560]
-                frame_car = cv2.flip(frame_car, 180)
+                # frame_car = frame_car[0:360, 80:560]
+                # frame_car = cv2.flip(frame_car, 180)
                 flag, self.bbox = tracker.update(frame_hand)
 
                 # print(self.bbox)
                 timer = cv2.getTickCount()
                 fps = int(cv2.getTickFrequency() / (cv2.getTickCount() - timer))
 
-                height, width = frame_car.shape[:2]
+                height, width = frame_hand.shape[:2]
 
                 p_x = int(self.bbox[0])
                 p_y = int(self.bbox[1])
@@ -204,19 +206,19 @@ class Run():
                     elif proportion_y >= 0.1:
                         self.ser.write(b'\x55')
 
-                    if proportion_x <= -0.1:
-                        self.ser.write(b'\x46')
-                        time.sleep(1)
-                        self.ser.write(47)
-                    elif proportion_x >= 0.1:
-                        self.ser.write(b'\x45')
-                        time.sleep(1)
-                        self.ser.write(47)
+                    # if proportion_x <= -0.1:
+                    #     self.ser.write(b'\x46')
+                    #     time.sleep(1)
+                    #     self.ser.write(b'\x47')
+                    # elif proportion_x >= 0.1:
+                    #     self.ser.write(b'\x45')
+                    #     time.sleep(1)
+                    #     self.ser.write(b'\x47')
+                    # else:
+                    if p_w * p_h >= 0.8 * width * 0.8 * height:
+                        self.ser.write(b'\x47')
                     else:
-                        if p_w * p_h >= 0.8 * width * 0.8 * height:
-                            self.ser.write(b'\x47')
-                        else:
-                            self.ser.write(b'\x43')
+                        self.ser.write(b'\x43')
 
                     self.count = 0
                 else:
@@ -243,11 +245,11 @@ class Run():
                             (10, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
                 cv2.putText(frame_hand, "Size : " + str(p_w * p_h),
                             (10, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-                frame = np.hstack((frame_hand, frame_car))
-                localtime = time.strftime("%H:%M:%S", time.localtime())
-                cv2.putText(frame, localtime, (350, 340), cv2.FONT_ITALIC, 0.75, (10, 10, 10), 2)
-                cv2.putText(frame, localtime, (350, 340), cv2.FONT_ITALIC, 0.75, (255, 255, 255), 1)
-                buffer = cv2.imencode('.jpg', frame)[1]
+                # frame = np.hstack((frame_hand, frame_car))
+                # localtime = time.strftime("%H:%M:%S", time.localtime())
+                # cv2.putText(frame, localtime, (350, 340), cv2.FONT_ITALIC, 0.75, (10, 10, 10), 2)
+                # cv2.putText(frame, localtime, (350, 340), cv2.FONT_ITALIC, 0.75, (255, 255, 255), 1)
+                buffer = cv2.imencode('.jpg', frame_hand)[1]
                 jpg_as_text = base64.b64encode(buffer)
                 self.footage_socket.send(jpg_as_text)
 
