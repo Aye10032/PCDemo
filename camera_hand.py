@@ -215,9 +215,14 @@ class Run():
                     #     time.sleep(1)
                     #     self.ser.write(47)
                     # else:
-                    if p_w * p_h >= 0.8 * width * 0.9 * height:
+                    if p_w * p_h >= 0.8 * width * 0.5 * height:
+                        # self.ser.write(b'\x47')
+                        # self.ser.write(b'\x43')
+                        time.sleep(1.5)
                         self.ser.write(b'\x47')
+                        self.isnomal = True
                     else:
+                        print((p_w * p_h)/(0.8 * width * 0.5 * height))
                         self.ser.write(b'\x43')
 
                     self.count = 0
