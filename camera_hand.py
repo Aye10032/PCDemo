@@ -13,7 +13,7 @@ import serial
 
 class Run():
     def __init__(self):
-        ip = 'tcp://192.168.2.19:5555'
+        ip = 'tcp://192.168.43.48:5555'
 
         self.context = zmq.Context()
         self.footage_socket = self.context.socket(zmq.PUB)
@@ -29,6 +29,8 @@ class Run():
         self.isnomal = True
         self.bbox = None
         self.count = 0
+        self.pw1 = 220.0
+        self.h1 = 1.3
 
         self.capture1 = cv2.VideoCapture(2)
         self.capture2 = cv2.VideoCapture(0)
@@ -71,7 +73,7 @@ class Run():
                     strmsg = data.decode('utf-8')
                     strlist = strmsg.split()
                     self.bbox = (int(strlist[0]), int(strlist[1]), int(strlist[2]), int(strlist[3]))
-                    print(self.bbox)
+                    # print(self.bbox)
                     self.isnomal = False
                 # tcpCliSock.send('[%s] %s' %(bytes(ctime(),'utf-8'),data))
             tcpCliSock.close()
@@ -182,6 +184,7 @@ class Run():
                 c_y = int(self.bbox[1] + self.bbox[3] / 2)
                 proportion_x = -(0.5 - c_x / width)
                 proportion_y = -(0.5 - c_y / height)
+                distance = p_w * (self.h1 / self.pw1)
 
                 if flag:
                     cv2.rectangle(frame_hand, p1, p2, (255, 255, 255), 2, 1)
@@ -222,7 +225,7 @@ class Run():
                         self.ser.write(b'\x47')
                         self.isnomal = True
                     else:
-                        print((p_w * p_h)/(0.8 * width * 0.5 * height))
+                        print((p_w * p_h) / (0.8 * width * 0.5 * height))
                         self.ser.write(b'\x43')
 
                     self.count = 0
@@ -232,6 +235,7 @@ class Run():
                                 2)
                     self.count += 1
                     if self.count >= 5:
+                        self.ser.write(b'\x47')
                         self.isnomal = True
 
                 cv2.putText(frame_hand, "FPS : " + str(fps),
@@ -246,9 +250,9 @@ class Run():
                             "Center : (" + str(c_x) + ',' + str(c_y) + ")",
                             (10, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
 
-                cv2.putText(frame_hand, "Size : " + str(p_w * p_h),
+                cv2.putText(frame_hand, "distance : %.2f" % distance,
                             (10, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
-                cv2.putText(frame_hand, "Size : " + str(p_w * p_h),
+                cv2.putText(frame_hand, "distance : %.2f" % distance,
                             (10, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
                 # frame = np.hstack((frame_hand, frame_car))
                 localtime = time.strftime("%H:%M:%S", time.localtime())
